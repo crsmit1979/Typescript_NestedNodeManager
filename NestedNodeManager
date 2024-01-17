@@ -12,15 +12,17 @@ class Elem {
 
     InsertChildBeforeOrAfter(el: Elem, id:number, position: "before" | "after"){
         var parent = this.FindParentForId(id);
-        const index = parent.Children.findIndex(child => child.Id === id);
+        if (!parent) return;
+
+        const index = parent.Children?.findIndex(child => child.Id === id);
 
         if (index !== -1) {
             if (position === "before") {
                 el.Parent = this;
-                parent.Children.splice(index, 0, el);
+                parent.Children?.splice(index, 0, el);
             } else if (position === "after") {
                 el.Parent = this;
-                parent.Children.splice(index + 1, 0, el);
+                parent.Children?.splice(index + 1, 0, el);
             }
         }        
     }
@@ -28,36 +30,42 @@ class Elem {
     /*this will find the item with id and then add the element after it as the next sibling */
     InsertChildAfter(el: Elem, id:number){
         var parent = this.FindParentForId(id);
-        const index = parent.Children.findIndex(child => child.Id === id);
+        if (!parent) return;
+
+        const index = parent?.Children?.findIndex(child => child.Id === id);
 
         if (index !== -1) {
             el.Parent = this;
-            parent.Children.splice(index + 1, 0, el);
+            parent.Children?.splice(index + 1, 0, el);
         }        
     }
 
     /*This will append an item to the children of the element with specific id*/
     AddChildToElement(el: Elem, id:number){
         var parent = this.FindParentForId(id);
+        if (!parent) return;
+
         el.Parent = this;
-        parent.Children.push(el);
+        parent.Children?.push(el);
     }
 
     /*this will find the item with id and then add the element before it as the previous sibling */
     InsertChildBefore(el: Elem, id:number){
         var parent = this.FindParentForId(id);
-        const index = parent.Children.findIndex(child => child.Id === id);
+        if (!parent) return;
+
+        const index = parent.Children?.findIndex(child => child.Id === id);
 
         if (index !== -1) {
                 el.Parent = this;
-                parent.Children.splice(index, 0, el);
+                parent.Children?.splice(index, 0, el);
         }        
     }
 
     /*this will just add a child to the current elements children */
     AddChild(el: Elem): void {
         el.Parent = this;
-        this.Children.push(el);
+        this.Children?.push(el);
     }
 
     /*this will find an element with the specific id either in the current element or any of it's siblings */
@@ -92,8 +100,8 @@ class Elem {
         return {
             Id: this.Id,
             Type: this.Type,
-            Children: this.Children.map(child => child.toJSON()),
-            _parentId: this.Parent?.Id
+            Children: this.Children?.map(child => child.toJSON()),
+            ParentId: this.Parent?.Id ? this.Parent?.Id : null
         };
     }
 
@@ -156,6 +164,6 @@ doc.Show();
 // const foundById = doc.FindById(3);
 // console.log("Found by Id:", foundById);
 
-doc.InsertChildBeforeOrAfter(new Elem(3, "table"), 3, "after")
+//doc.InsertChildBeforeOrAfter(new Elem(3, "table"), 3, "after")
 doc.Show();
 //console.log(doc.toJSON())
