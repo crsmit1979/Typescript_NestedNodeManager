@@ -9,30 +9,16 @@ class Elem {
         this.Type = tp;
         this.Children = [];
     }
-
-    InsertChildBeforeOrAfter(el: Elem, id:number, position: "before" | "after"){
-        var parent = this.FindParentForId(id);
-        if (!parent) return;
-
-        const index = parent.Children?.findIndex(child => child.Id === id);
-
-        if (index !== -1) {
-            if (position === "before") {
-                el.Parent = this;
-                parent.Children?.splice(index, 0, el);
-            } else if (position === "after") {
-                el.Parent = this;
-                parent.Children?.splice(index + 1, 0, el);
-            }
-        }        
+    static Create(id: number, type:String){
+        return new Elem(id, type);
     }
-
+    
     /*this will find the item with id and then add the element after it as the next sibling */
     InsertChildAfter(el: Elem, id:number){
         var parent = this.FindParentForId(id);
         if (!parent) return;
 
-        const index = parent?.Children?.findIndex(child => child.Id === id);
+        const index = parent?.Children?.findIndex(child => child.Id === id) ?? -1;
 
         if (index !== -1) {
             el.Parent = this;
@@ -51,10 +37,10 @@ class Elem {
 
     /*this will find the item with id and then add the element before it as the previous sibling */
     InsertChildBefore(el: Elem, id:number){
-        var parent = this.FindParentForId(id);
+           var parent = this.FindParentForId(id);
         if (!parent) return;
 
-        const index = parent.Children?.findIndex(child => child.Id === id);
+        const index = parent.Children?.findIndex(child => child.Id === id) ??-1;
 
         if (index !== -1) {
                 el.Parent = this;
@@ -72,8 +58,7 @@ class Elem {
     FindById(id: number): Elem | null {
         if (this.Id === id) return this;
         if (this.Children && this.Children.length > 0) {
-            for (let x = 0; x < this.Children.length; x++) {
-                const child = this.Children[x];
+            for (var child of this.Children) {
                 const found = child.FindById(id);
                 if (found !== null) return found;
             }
@@ -84,13 +69,10 @@ class Elem {
     /*this will search for a specific id in the current element or its children and return the parent element */
     FindParentForId(id: number, parent?: Elem): Elem | null {
         if (this.Id === id) return parent || null;
-        if (this.Children && this.Children.length > 0) {
-            for (let x = 0; x < this.Children.length; x++) {
-                const child = this.Children[x];
+            for (var child of this.Children) {
                 const found = child.FindParentForId(id, this);
                 if (found !== null) return found;
             }
-        }
         return null;
     }
 
@@ -101,30 +83,38 @@ class Elem {
             Id: this.Id,
             Type: this.Type,
             Children: this.Children?.map(child => child.toJSON()),
-            ParentId: this.Parent?.Id ? this.Parent?.Id : null
+            ParentId: this.Parent?.Id ?? null
         };
     }
 
     Show(): void {
         console.log(this);
     }
+}
 
-    /* will load a json object from a string variable*/
-    static Load(json:string): Elem{
-       const parsedJson = JSON.parse(json);
+
+
+class ElemSerializer {
+    public static Serialize(elem: Elem): string {
+        return JSON.stringify(elem.toJSON());
+    }
+
+    public static Deserialize(json: string): Elem {
+        const parsedJson = JSON.parse(json);
         const root = new Elem(parsedJson.Id, parsedJson.Type);
 
         if (parsedJson.Children && parsedJson.Children.length > 0) {
-            root.Children = parsedJson.Children.map((childJson: any) => Elem.LoadChild(childJson, root));
+            root.Children = parsedJson.Children.map((childJson: any) => ElemSerializer.LoadChild(childJson, root));
         }
 
         return root;
     }
+
     private static LoadChild(json: any, parent: Elem): Elem {
         const child = new Elem(json.Id, json.Type);
 
         if (json.Children && json.Children.length > 0) {
-            child.Children = json.Children.map((childJson: any) => Elem.LoadChild(childJson, child));
+            child.Children = json.Children.map((childJson: any) => ElemSerializer.LoadChild(childJson, child));
         }
 
         child.Parent = parent;
@@ -132,6 +122,7 @@ class Elem {
         return child;
     }
 }
+
 
 var str = `{
   "Id": 1,
@@ -150,20 +141,23 @@ var str = `{
     }
   ]
   } `
-var doc = Elem.Load(str)
-//doc.Show();
-/*
-const doc = new Elem(1, "doc");
-const div = new Elem(2, "div");
-const txt = new Elem(3, "txt");
+var doc1 = ElemSerializer.Deserialize(str);
+doc1.Show();
+
+var str = ElemSerializer.Serialize(doc1);
+console.log(str);
+
+const doc = Elem.Create(1, "doc");
+const div = Elem.Create(2, "div");
+const txt = Elem.Create(3, "txt");
 div.AddChild(txt);
 doc.AddChild(div);
 doc.Show();
-*/
-// Uncomment the following lines to test FindById
-// const foundById = doc.FindById(3);
-// console.log("Found by Id:", foundById);
 
-//doc.InsertChildBeforeOrAfter(new Elem(3, "table"), 3, "after")
+// Uncomment the following lines to test FindById
+ const foundById = doc.FindById(3);
+ console.log("Found by Id:", foundById);
+
+doc.InsertChildAfter(new Elem(4, "table"), 3)
 doc.Show();
 //console.log(doc.toJSON())
