@@ -1,0 +1,130 @@
+//This function jsut creates a class with nested elements and then the functions to manipulate the element.
+//This will be used to build a type of editor where you can drag/drop elements and build say a web layout from a json structure
+
+class Elem {
+    Id?: number;
+    Type?: string;
+    Children?: Elem[];
+    Parent?: Elem;
+
+    constructor(id: number, tp: string) {
+        this.Id = id;
+        this.Type = tp;
+        this.Children = [];
+    }
+
+    InsertChildBeforeOrAfter(el: Elem, id:number, position: "before" | "after"){
+        var parent = this.FindParentForId(id);
+        const index = parent.Children.findIndex(child => child.Id === id);
+
+        if (index !== -1) {
+            if (position === "before") {
+                el.Parent = this;
+                parent.Children.splice(index, 0, el);
+            } else if (position === "after") {
+                el.Parent = this;
+                parent.Children.splice(index + 1, 0, el);
+            }
+        }        
+    }
+
+    AddChild(el: Elem): void {
+        el.Parent = this;
+        this.Children.push(el);
+    }
+
+    FindById(id: number): Elem | null {
+        if (this.Id === id) return this;
+        if (this.Children && this.Children.length > 0) {
+            for (let x = 0; x < this.Children.length; x++) {
+                const child = this.Children[x];
+                const found = child.FindById(id);
+                if (found !== null) return found;
+            }
+        }
+        return null;
+    }
+
+    FindParentForId(id: number, parent?: Elem): Elem | null {
+        if (this.Id === id) return parent || null;
+        if (this.Children && this.Children.length > 0) {
+            for (let x = 0; x < this.Children.length; x++) {
+                const child = this.Children[x];
+                const found = child.FindParentForId(id, this);
+                if (found !== null) return found;
+            }
+        }
+        return null;
+    }
+
+
+    toJSON(): any {
+        return {
+            Id: this.Id,
+            Type: this.Type,
+            Children: this.Children.map(child => child.toJSON()),
+            _parentId: this.Parent?.Id
+        };
+    }
+
+    Show(): void {
+        console.log(this);
+    }
+
+    static Load(json:string): Elem{
+       const parsedJson = JSON.parse(json);
+        const root = new Elem(parsedJson.Id, parsedJson.Type);
+
+        if (parsedJson.Children && parsedJson.Children.length > 0) {
+            root.Children = parsedJson.Children.map((childJson: any) => Elem.LoadChild(childJson, root));
+        }
+
+        return root;
+    }
+        private static LoadChild(json: any, parent: Elem): Elem {
+        const child = new Elem(json.Id, json.Type);
+
+        if (json.Children && json.Children.length > 0) {
+            child.Children = json.Children.map((childJson: any) => Elem.LoadChild(childJson, child));
+        }
+
+        child.Parent = parent;
+
+        return child;
+    }
+}
+
+var str = `{
+  "Id": 1,
+  "Type": "doc",
+  "Children": [
+    {
+      "Id": 2,
+      "Type": "div",
+      "Children": [
+        {
+          "Id": 3,
+          "Type": "txt",
+          "Children": []
+        }
+      ]
+    }
+  ]
+  } `
+var doc = Elem.Load(str)
+//doc.Show();
+/*
+const doc = new Elem(1, "doc");
+const div = new Elem(2, "div");
+const txt = new Elem(3, "txt");
+div.AddChild(txt);
+doc.AddChild(div);
+doc.Show();
+*/
+// Uncomment the following lines to test FindById
+// const foundById = doc.FindById(3);
+// console.log("Found by Id:", foundById);
+
+doc.InsertChildBeforeOrAfter(new Elem(3, "table"), 3, "after")
+doc.Show();
+//console.log(doc.toJSON())
