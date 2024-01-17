@@ -1,6 +1,3 @@
-//This function jsut creates a class with nested elements and then the functions to manipulate the element.
-//This will be used to build a type of editor where you can drag/drop elements and build say a web layout from a json structure
-
 class Elem {
     Id?: number;
     Type?: string;
@@ -28,11 +25,42 @@ class Elem {
         }        
     }
 
+    /*this will find the item with id and then add the element after it as the next sibling */
+    InsertChildAfter(el: Elem, id:number){
+        var parent = this.FindParentForId(id);
+        const index = parent.Children.findIndex(child => child.Id === id);
+
+        if (index !== -1) {
+            el.Parent = this;
+            parent.Children.splice(index + 1, 0, el);
+        }        
+    }
+
+    /*This will append an item to the children of the element with specific id*/
+    AddChildToElement(el: Elem, id:number){
+        var parent = this.FindParentForId(id);
+        el.Parent = this;
+        parent.Children.push(el);
+    }
+
+    /*this will find the item with id and then add the element before it as the previous sibling */
+    InsertChildBefore(el: Elem, id:number){
+        var parent = this.FindParentForId(id);
+        const index = parent.Children.findIndex(child => child.Id === id);
+
+        if (index !== -1) {
+                el.Parent = this;
+                parent.Children.splice(index, 0, el);
+        }        
+    }
+
+    /*this will just add a child to the current elements children */
     AddChild(el: Elem): void {
         el.Parent = this;
         this.Children.push(el);
     }
 
+    /*this will find an element with the specific id either in the current element or any of it's siblings */
     FindById(id: number): Elem | null {
         if (this.Id === id) return this;
         if (this.Children && this.Children.length > 0) {
@@ -45,6 +73,7 @@ class Elem {
         return null;
     }
 
+    /*this will search for a specific id in the current element or its children and return the parent element */
     FindParentForId(id: number, parent?: Elem): Elem | null {
         if (this.Id === id) return parent || null;
         if (this.Children && this.Children.length > 0) {
@@ -58,6 +87,7 @@ class Elem {
     }
 
 
+    /*converts the current objec to a json object */
     toJSON(): any {
         return {
             Id: this.Id,
@@ -71,6 +101,7 @@ class Elem {
         console.log(this);
     }
 
+    /* will load a json object from a string variable*/
     static Load(json:string): Elem{
        const parsedJson = JSON.parse(json);
         const root = new Elem(parsedJson.Id, parsedJson.Type);
@@ -81,7 +112,7 @@ class Elem {
 
         return root;
     }
-        private static LoadChild(json: any, parent: Elem): Elem {
+    private static LoadChild(json: any, parent: Elem): Elem {
         const child = new Elem(json.Id, json.Type);
 
         if (json.Children && json.Children.length > 0) {
