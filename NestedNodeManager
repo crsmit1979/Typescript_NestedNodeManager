@@ -12,6 +12,16 @@ class Elem {
     static Create(id: number, type:String){
         return new Elem(id, type);
     }
+
+
+ *[Symbol.iterator](): Iterator<Elem> {
+        yield this;
+        if (this.Children && this.Children.length > 0) {
+            for (const child of this.Children) {
+                yield* child;
+            }
+        }
+    }
     
     /*this will find the item with id and then add the element after it as the next sibling */
     InsertChildAfter(el: Elem, id:number){
