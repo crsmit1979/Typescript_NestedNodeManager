@@ -1,93 +1,22 @@
 class Elem {
-    Id?: number;
-    Type?: string;
+    Id: number;
+    Type: string;
     Children?: Elem[];
     Parent?: Elem;
 
-    constructor(id: number, tp: string) {
+    constructor(id:number, type:string,children:Elem[] | null)
+    {
         this.Id = id;
-        this.Type = tp;
-        this.Children = [];
+        this.Type = type;
+        this.Children = children ?? [];
     }
-    static Create(id: number, type:String){
-        return new Elem(id, type);
+    static Create(id: number, type:string): Elem{
+        return new Elem(id, type, null);
     }
-
-
- *[Symbol.iterator](): Iterator<Elem> {
-        yield this;
-        if (this.Children && this.Children.length > 0) {
-            for (const child of this.Children) {
-                yield* child;
-            }
-        }
-    }
-    
-    /*this will find the item with id and then add the element after it as the next sibling */
-    InsertChildAfter(el: Elem, id:number){
-        var parent = this.FindParentForId(id);
-        if (!parent) return;
-
-        const index = parent?.Children?.findIndex(child => child.Id === id) ?? -1;
-
-        if (index !== -1) {
-            el.Parent = this;
-            parent.Children?.splice(index + 1, 0, el);
-        }        
+    Show(){
+        console.log(this);
     }
 
-    /*This will append an item to the children of the element with specific id*/
-    AddChildToElement(el: Elem, id:number){
-        var parent = this.FindParentForId(id);
-        if (!parent) return;
-
-        el.Parent = this;
-        parent.Children?.push(el);
-    }
-
-    /*this will find the item with id and then add the element before it as the previous sibling */
-    InsertChildBefore(el: Elem, id:number){
-           var parent = this.FindParentForId(id);
-        if (!parent) return;
-
-        const index = parent.Children?.findIndex(child => child.Id === id) ??-1;
-
-        if (index !== -1) {
-                el.Parent = this;
-                parent.Children?.splice(index, 0, el);
-        }        
-    }
-
-    /*this will just add a child to the current elements children */
-    AddChild(el: Elem): void {
-        el.Parent = this;
-        this.Children?.push(el);
-    }
-
-    /*this will find an element with the specific id either in the current element or any of it's siblings */
-    FindById(id: number): Elem | null {
-        if (this.Id === id) return this;
-        if (this.Children && this.Children.length > 0) {
-            for (var child of this.Children) {
-                const found = child.FindById(id);
-                if (found !== null) return found;
-            }
-        }
-        return null;
-    }
-
-    /*this will search for a specific id in the current element or its children and return the parent element */
-    FindParentForId(id: number, parent?: Elem): Elem | null {
-        if (this.Id === id) return parent || null;
-            for (var child of this.Children) {
-                const found = child.FindParentForId(id, this);
-                if (found !== null) return found;
-            }
-        return null;
-    }
-
-
-    /*converts the current objec to a json object */
     toJSON(): any {
         return {
             Id: this.Id,
@@ -96,13 +25,109 @@ class Elem {
             ParentId: this.Parent?.Id ?? null
         };
     }
-
-    Show(): void {
-        console.log(this);
-    }
 }
 
+class TreeNode<T> {
+    root: Elem | null = null;
+    index : {[id:number]: Elem} = {};
+    
+    constructor(elem: Elem){
+        this.root = elem;
+        this.buildIndex(elem);
+    }
 
+    *[Symbol.iterator](): Iterator<Elem> {
+        yield* this.iterateTree(this.root);
+    }
+
+    private buildIndex(node: Elem | null): void {
+        if (node) {
+            this.index[node.Id] = node;
+
+            if (node.Children && node.Children.length > 0) {
+                for (const child of node.Children) {
+                    this.buildIndex(child);
+                }
+            }
+        }
+    }
+
+    public FindById(id: number): Elem | null{
+        return this.index[id];
+    }
+
+    private *iterateTree(node: Elem | null): IterableIterator<Elem> {
+        if (node) {
+            yield node;
+
+            if (node.Children && node.Children.length > 0) {
+                for (const child of node.Children) {
+                    yield* this.iterateTree(child);
+                }
+            }
+        }
+    }
+
+    AddChild(id: number, elem: Elem): void {
+        const node = this.FindById(id);
+        if (node) {
+            elem.Parent = node;
+            node.Children.push(elem);
+            this.buildIndex(this.root);
+        }
+    }
+    InsertBefore(id: number, elem: Elem){
+        var node = this.FindById(id);
+        if (node && node.Parent) {
+            var parentNode = node.Parent;
+            const index = parentNode.Children.indexOf(node);
+            
+            if (index !== -1) {
+                parentNode.Children.splice(index, 0, elem);
+                elem.Parent = parentNode;
+                this.buildIndex(this.root);
+            }
+        }
+    }
+    InsertAfter(id: number, elem: Elem){
+        var node = this.FindById(id);
+        if (node && node.Parent) {
+            var parentNode = node.Parent;
+            const index = parentNode.Children.indexOf(node);
+            
+            if (index !== -1) {
+                parentNode.Children.splice(index+1, 0, elem);
+                elem.Parent = parentNode;
+                this.buildIndex(this.root);
+            }
+        }
+    }
+
+    DeleteById(id: number): void {
+        const nodeToDelete = this.FindById(id);
+
+        if (nodeToDelete) {
+            const parentNode = nodeToDelete.Parent;
+
+            if (parentNode) {
+                const indexInParent = parentNode.Children.indexOf(nodeToDelete);
+
+                if (indexInParent !== -1) {
+                    parentNode.Children.splice(indexInParent, 1); // Remove the node from parent's children array
+                    this.buildIndex(this.root); // Rebuild the index
+                }
+            } else {
+                // If the node to delete is the root
+                this.root = null;
+                this.index = {};
+            }
+        }
+    }
+
+    Show(){
+        console.log(this.root)
+    }
+}
 
 class ElemSerializer {
     public static Serialize(elem: Elem): string {
@@ -111,7 +136,7 @@ class ElemSerializer {
 
     public static Deserialize(json: string): Elem {
         const parsedJson = JSON.parse(json);
-        const root = new Elem(parsedJson.Id, parsedJson.Type);
+        const root = Elem.Create(parsedJson.Id, parsedJson.Type);
 
         if (parsedJson.Children && parsedJson.Children.length > 0) {
             root.Children = parsedJson.Children.map((childJson: any) => ElemSerializer.LoadChild(childJson, root));
@@ -131,6 +156,7 @@ class ElemSerializer {
 
         return child;
     }
+
 }
 
 
@@ -154,20 +180,10 @@ var str = `{
 var doc1 = ElemSerializer.Deserialize(str);
 doc1.Show();
 
-var str = ElemSerializer.Serialize(doc1);
-console.log(str);
-
-const doc = Elem.Create(1, "doc");
-const div = Elem.Create(2, "div");
-const txt = Elem.Create(3, "txt");
-div.AddChild(txt);
-doc.AddChild(div);
-doc.Show();
-
-// Uncomment the following lines to test FindById
- const foundById = doc.FindById(3);
- console.log("Found by Id:", foundById);
-
-doc.InsertChildAfter(new Elem(4, "table"), 3)
-doc.Show();
-//console.log(doc.toJSON())
+var tree = new TreeNode<Elem>(doc1);
+var itm = tree.FindById(3);
+tree.AddChild(3, Elem.Create(10,"AAAA"))
+//tree.InsertBefore(10, Elem.Create(12,"BBBB"))
+tree.InsertAfter(10, Elem.Create(12,"BBBB"))
+tree.DeleteById(10);
+tree.Show();
