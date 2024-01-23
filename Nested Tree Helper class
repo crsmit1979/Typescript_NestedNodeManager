@@ -7,15 +7,24 @@ class Elem {
         this.Children = children;
     }
 }
+interface IHelper {
+     Clone(el: Elem): Elem
+    FindById(el: Elem, id: number): Elem | null;
+    FindParentById(el: Elem, id: number): Elem | null;
+    AddChild(el: Elem, id: number, newElem: Elem): void;
+    DeleteById(el: Elem, id: number): void;
+    Insert(el: Elem, id: number, newElem: Elem, insertBefore: boolean): void;
+    Move(el: Elem, fromId: number, toId: number, insertBefore: boolean): void;
+}
 
 
-class Helper {
-    static Clone(el: Elem): Elem {
+class Helper implements IHelper {
+     Clone(el: Elem): Elem {
         var copy = {...el};
         return copy;
     }
 
-    static FindById(el: Elem, id:number): Elem | null {
+     FindById(el: Elem, id:number): Elem | null {
         const queue: Elem[] = [el];
 
         while (queue.length > 0) {
@@ -30,7 +39,7 @@ class Helper {
 
         return null; 
     }
-     static FindParentById(el: Elem, id: number): Elem | null {
+      FindParentById(el: Elem, id: number): Elem | null {
         const queue: { node: Elem, parent: Elem | null }[] = [{ node: el, parent: null }];
 
         while (queue.length > 0) {
@@ -45,26 +54,26 @@ class Helper {
 
         return null;
     }
-    static AddChild(el:Elem, id: number, newElem: Elem){
-        var fnd = Helper.FindById(el, id);
+    AddChild(el:Elem, id: number, newElem: Elem){
+        var fnd = this.FindById(el, id);
         if (!fnd) {     
-            throw new Error("Could not find element with id=" + fromId)
+            throw new Error("Could not find element with id=" + id)
         }
         fnd.Children.push(newElem);
     }
 
-      static DeleteById(el: Elem, id: number) {
+      DeleteById(el: Elem, id: number) {
         el.Children = el.Children.filter(child => {
             if (child.Id === id) {
                 return false; // Exclude the element with the specified ID
             }
 
-            Helper.DeleteById(child, id);
+            this.DeleteById(child, id);
             return true; // Include other children
         });
     }
 
-    static Insert(el: Elem, id: number, newElem: Elem, insertBefore: boolean) {
+    Insert(el: Elem, id: number, newElem: Elem, insertBefore: boolean) {
         const index = el.Children.findIndex(child => child.Id === id);
 
         if (index !== -1) {
@@ -72,21 +81,17 @@ class Helper {
             el.Children.splice(position, 0, newElem);
         }
 
-        el.Children.forEach(child => Helper.Insert(child, id, newElem, insertBefore));
+        el.Children.forEach(child => this.Insert(child, id, newElem, insertBefore));
     }    
 
-    static Move(copy: Elem, fromId: number, toId: number, insertBefore: boolean) {
-        var itemToDelete = Helper.FindById(copy, fromId)
+    Move(copy: Elem, fromId: number, toId: number, insertBefore: boolean) {
+        var itemToDelete = this.FindById(copy, fromId)
         if (!itemToDelete) {
             throw new Error("Could not find element with id=" + fromId)
         } 
-        var copyOfDelete = Helper.Clone(itemToDelete);
-        Helper.DeleteById(copy, fromId);
-        Helper.Insert(copy, toId, copyOfDelete, insertBefore);
-    }
-
-    private static findIndexById(el: Elem, id: number): number {
-        return el.Children.findIndex(child => child.Id === id);
+        var copyOfDelete = this.Clone(itemToDelete);
+        this.DeleteById(copy, fromId);
+        this.Insert(copy, toId, copyOfDelete, insertBefore);
     }
 }
 
@@ -115,13 +120,14 @@ var newJs = {
     Children: []
 }
 var el = js as Elem;
-var copy = Helper.Clone(el);
-//var fnd = Helper.FindById(copy, 2);
-//Helper.AddChild(copy, 2, newJs as Elem)
-//Helper.DeleteById(copy, 999);
-//Helper.Insert(copy, 2,newJs as Elem, false)
+var hlp =  new Helper();
+var copy = hlp.Clone(el);
+//var fnd = hlp.FindById(copy, 2);
+//hlp.AddChild(copy, 2, newJs as Elem)
+//hlp.DeleteById(copy, 999);
+//hlp.Insert(copy, 2,newJs as Elem, false)
 
-//Helper.Move(copy, 3, 2, true)
-//Helper.Move(copy, 2, 3, true)
-var fnd = Helper.FindParentById(copy,  3);
-console.log(fnd)
+hlp.Move(copy, 3, 2, true)
+//hlp.Move(copy, 2, 3, true)
+//var fnd = hlp.FindParentById(copy,  3);
+console.log(copy)
