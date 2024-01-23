@@ -1,0 +1,96 @@
+class Elem {
+    Id: number;
+    Children: Elem[];
+}
+
+
+class Helper {
+    static Clone(el: Elem): Elem {
+        var copy = {...el};
+        return copy;
+    }
+
+    static FindById(el: Elem, id:number): Elem | null {
+        if (el.Id === id) {
+            return el;
+        }
+
+
+        const foundInChildren = el.Children.find(child => Helper.FindById(child, id) !== null);
+        return foundInChildren || null;
+    }
+
+    static AddChild(el:Elem, id: number, newElem: Elem){
+        var fnd = Helper.FindById(el, id);
+        fnd.Children.push(newElem);
+    }
+
+      static DeleteById(el: Elem, id: number) {
+        el.Children = el.Children.filter(child => {
+            if (child.Id === id) {
+                return false; // Exclude the element with the specified ID
+            }
+
+            Helper.DeleteById(child, id);
+            return true; // Include other children
+        });
+    }
+
+    static Insert(el: Elem, id: number, newElem: Elem, insertBefore: boolean) {
+        const index = el.Children.findIndex(child => child.Id === id);
+
+        if (index !== -1) {
+            const position = insertBefore ? index : index + 1;
+            el.Children.splice(position, 0, newElem);
+        }
+
+        el.Children.forEach(child => Helper.Insert(child, id, newElem, insertBefore));
+    }    
+
+    static Move(copy: Elem, fromId: number, toId: number, insertBefore: boolean) {
+        var itemToDelete = Helper.FindById(copy, fromId)
+        var copyOfDelete = Helper.Clone(itemToDelete);
+        Helper.DeleteById(copy, fromId);
+        Helper.Insert(copy, toId, copyOfDelete, insertBefore);
+    }
+
+    private static findIndexById(el: Elem, id: number): number {
+        return el.Children.findIndex(child => child.Id === id);
+    }
+}
+
+
+var js = {
+    Id:1,
+    Type:"Doc",
+    Children: [
+        {
+            Id: 2,
+            Type: "text",
+            Children:[]
+        },
+        {
+            Id: 3,
+            Type: "text",
+            Children:[]
+        },
+    ]
+}
+var newJs = {
+    Id: 999,
+    Type:"div",
+    Children: []
+}
+var el = js as Elem;
+var copy = Helper.Clone(el);
+//var fnd = Helper.FindById(copy, 2);
+//Helper.AddChild(copy, 2, newJs as Elem)
+//Helper.DeleteById(copy, 999);
+//Helper.Insert(copy, 2,newJs as Elem, false)
+var fromId = 3;
+var toId = 2;
+var insertBefore = false;
+
+Helper.Move(copy, 3, 2, true)
+Helper.Move(copy, 2, 3, true)
+console.log(copy)
