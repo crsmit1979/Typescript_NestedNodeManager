@@ -1,6 +1,11 @@
 class Elem {
     Id: number;
     Children: Elem[];
+
+    constructor(id:number, children:Elem[]){
+        this.Id = id;
+        this.Children = children;
+    }
 }
 
 
@@ -11,17 +16,40 @@ class Helper {
     }
 
     static FindById(el: Elem, id:number): Elem | null {
-        if (el.Id === id) {
-            return el;
+        const queue: Elem[] = [el];
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+
+            if (current.Id === id) {
+                return current;
+            }
+
+            queue.push(...current.Children);
         }
 
-
-        const foundInChildren = el.Children.find(child => Helper.FindById(child, id) !== null);
-        return foundInChildren || null;
+        return null; 
     }
+     static FindParentById(el: Elem, id: number): Elem | null {
+        const queue: { node: Elem, parent: Elem | null }[] = [{ node: el, parent: null }];
 
+        while (queue.length > 0) {
+            const { node, parent } = queue.shift()!;
+
+            if (node.Id === id) {
+                return parent;
+            }
+
+            queue.push(...node.Children.map(child => ({ node: child, parent: node })));
+        }
+
+        return null;
+    }
     static AddChild(el:Elem, id: number, newElem: Elem){
         var fnd = Helper.FindById(el, id);
+        if (!fnd) {     
+            throw new Error("Could not find element with id=" + fromId)
+        }
         fnd.Children.push(newElem);
     }
 
@@ -49,6 +77,9 @@ class Helper {
 
     static Move(copy: Elem, fromId: number, toId: number, insertBefore: boolean) {
         var itemToDelete = Helper.FindById(copy, fromId)
+        if (!itemToDelete) {
+            throw new Error("Could not find element with id=" + fromId)
+        } 
         var copyOfDelete = Helper.Clone(itemToDelete);
         Helper.DeleteById(copy, fromId);
         Helper.Insert(copy, toId, copyOfDelete, insertBefore);
@@ -67,13 +98,15 @@ var js = {
         {
             Id: 2,
             Type: "text",
-            Children:[]
-        },
-        {
-            Id: 3,
-            Type: "text",
-            Children:[]
-        },
+            Children:[
+                {
+                    Id: 3,
+                    Type: "text",
+                    Children:[]
+                },
+
+            ]
+        }
     ]
 }
 var newJs = {
@@ -87,10 +120,8 @@ var copy = Helper.Clone(el);
 //Helper.AddChild(copy, 2, newJs as Elem)
 //Helper.DeleteById(copy, 999);
 //Helper.Insert(copy, 2,newJs as Elem, false)
-var fromId = 3;
-var toId = 2;
-var insertBefore = false;
 
-Helper.Move(copy, 3, 2, true)
-Helper.Move(copy, 2, 3, true)
-console.log(copy)
+//Helper.Move(copy, 3, 2, true)
+//Helper.Move(copy, 2, 3, true)
+var fnd = Helper.FindParentById(copy,  3);
+console.log(fnd)
